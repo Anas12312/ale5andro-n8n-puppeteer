@@ -52,7 +52,7 @@ export default async function scrape(id: string, year: string, month: string): P
 
             await page.waitForNetworkIdle()
 
-            const table = await page.waitForSelector('table#tablaPlanillaAsistida', { timeout: 1_000 })
+            const table = await page.waitForSelector('table#tablaPlanillaAsistida', { timeout: 10_000 })
 
             const tableRows = await table?.evaluate(el => {
                 const rows = el.querySelectorAll('tr');
