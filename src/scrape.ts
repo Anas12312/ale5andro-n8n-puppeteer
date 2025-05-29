@@ -1,4 +1,4 @@
-import puppeteer, { Page } from "puppeteer-core"
+import puppeteer, { Browser, Page } from "puppeteer-core"
 
 
 interface Data {
@@ -8,19 +8,22 @@ interface Data {
     state: string
     settled_period: string
 }
+const BROWSER_WS_ENDPOINT = process.env.BROWSER_WS_ENDPOINT
 
-export default async function scrape(id: string, year: string, month: string): Promise<Data[]> {
+export default async function scrape(id: string, year: string, month: string, browser: Browser): Promise<Data[]> {
+
+    if (!browser) {
+        throw new Error('Browser is still connecting...')
+    }
 
     try {
-        const BROWSER_WS_ENDPOINT = process.env.BROWSER_WS_ENDPOINT
-
-        const browser = await puppeteer.connect({
-            browserWSEndpoint: BROWSER_WS_ENDPOINT
-        });
-
+        console.log('Starting scrape');
+        const start = performance.now()
 
         const page: Page = await browser.newPage();
         await page.goto("https://servicio.nuevosoi.com.co/soi/consultarplanillas.do", { waitUntil: "networkidle0" });
+
+        console.log('Navigated to page');
 
         const firstSelect = await page.waitForSelector('select#tipoDocumento');
 
@@ -47,6 +50,8 @@ export default async function scrape(id: string, year: string, month: string): P
         const searchButton2 = await page.waitForSelector('button#btnGuardar')
         await searchButton2?.click();
 
+        console.log('Clicked search button');
+
         try {
             // Table
 
@@ -69,6 +74,10 @@ export default async function scrape(id: string, year: string, month: string): P
                     }
                 });
             })
+
+            console.log('Scraped table');
+            const end = performance.now()
+            console.log(`Scraped table in ${end - start} milliseconds`)
 
             tableRows?.shift()
 
