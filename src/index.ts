@@ -1,27 +1,27 @@
 import express, { Request, Response, RequestHandler } from 'express'
-import puppeteer, { Browser, Page } from "puppeteer-core";
+import puppeteer, { Browser } from "puppeteer-core";
 import cors from 'cors'
 import dotenv from 'dotenv'
 dotenv.config()
 
-import scrape from './scrape'
+import { ScrapeQueue } from './queue'
 
 // Create Express app
 const app = express()
-
 
 // Middleware
 app.use(cors())
 app.use(express.json())
 
 let browser: Browser
+let scrapeQueue: ScrapeQueue
 
 (async () => {
     browser = await puppeteer.connect({
         browserWSEndpoint: process.env.BROWSER_WS_ENDPOINT
     })
+    scrapeQueue = new ScrapeQueue(browser)
 })()
-
 
 // GET endpoint
 const handleRequest: RequestHandler = async (req, res) => {
@@ -33,7 +33,7 @@ const handleRequest: RequestHandler = async (req, res) => {
     }
 
     try {
-        const result = await scrape(id as string, year as string, month as string, browser)
+        const result = await scrapeQueue.enqueue(id as string, year as string, month as string)
         res.json(result)
         return
     } catch (error) {
