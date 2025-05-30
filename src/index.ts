@@ -64,7 +64,7 @@ const handleRequest: RequestHandler = async (req, res) => {
         const result = await scrapeQueue.enqueue(local_id_number as string, year as string, month as string, local_id_type as 'NATIONAL_IDENTITY_CARD' | 'PASSPORT')
         const end = performance.now()
         res.status(200).json({
-            status_code: 200,
+            status_code: (result.result === 'PAYMENT_DATA_FOUND' || result.result === 'PAYMENT_DATA_NOT_FOUND') ? 200 : 400,
             date_time: new Date().toISOString(),
             time_taken: end - start,
             result: result.result,
