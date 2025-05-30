@@ -2,15 +2,18 @@ import puppeteer, { Browser, Page } from "puppeteer-core"
 
 
 interface Data {
-    payroll_number: string
-    payroll_type: string
-    payroll_value: string
-    state: string
-    settled_period: string
+    form_id: string
+    form_type: string
+    amount_original: string
+    status: string
+    period: string
 }
 const BROWSER_WS_ENDPOINT = process.env.BROWSER_WS_ENDPOINT
 
-export default async function scrape(id: string, year: string, month: string, browser: Browser): Promise<Data[]> {
+export default async function scrape(id: string, year: string, month: string, type: 'NATIONAL_IDENTITY_CARD' | 'PASSPORT', browser: Browser): Promise<{
+    data: Data[],
+    result: string
+}> {
 
     if (!browser) {
         throw new Error('Browser is still connecting...')
@@ -25,9 +28,14 @@ export default async function scrape(id: string, year: string, month: string, br
 
         console.log('Navigated to page');
 
+        // Select Document Type
         const firstSelect = await page.waitForSelector('select#tipoDocumento');
 
-        await firstSelect?.select('1');
+        if (type === 'NATIONAL_IDENTITY_CARD') {
+            await firstSelect?.select('1');
+        } else if (type === 'PASSPORT') {
+            await firstSelect?.select('5');
+        }
 
         const idInput = await page.waitForSelector('input#numeroDocumento');
 
@@ -66,11 +74,11 @@ export default async function scrape(id: string, year: string, month: string, br
                     const cells = row.querySelectorAll('td');
                     const arr = Array.from(cells).map(cell => cell.textContent);
                     return {
-                        payroll_number: arr[0],
-                        payroll_type: arr[1],
-                        payroll_value: arr[2],
-                        state: arr[3],
-                        settled_period: arr[4]?.trim(),
+                        form_id: arr[0],
+                        form_type: arr[1],
+                        amount_original: arr[2],
+                        status: arr[3],
+                        period: arr[4]?.trim(),
                     }
                 });
             })
@@ -81,14 +89,23 @@ export default async function scrape(id: string, year: string, month: string, br
 
             tableRows?.shift()
 
-            return tableRows as Data[] || []
+            return {
+                data: tableRows as Data[],
+                result: `Scraped table in ${end - start} milliseconds`
+            }
         } catch (error) {
             console.error('No data found')
-            return []
+            return {
+                data: [],
+                result: 'NO_DATA_FOUND'
+            }
         }
 
     } catch (error) {
         console.error('Error in scrape:', error)
-        return []
+        return {
+            data: [],
+            result: 'SCRAPE_FAILED'
+        }
     }
 }

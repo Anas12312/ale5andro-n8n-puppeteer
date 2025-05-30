@@ -5,6 +5,7 @@ interface ScrapeTask {
     id: string;
     year: string;
     month: string;
+    type: 'NATIONAL_IDENTITY_CARD' | 'PASSPORT';
     resolve: (value: any) => void;
     reject: (error: any) => void;
 }
@@ -18,9 +19,9 @@ export class ScrapeQueue {
         this.browser = browser;
     }
 
-    public async enqueue(id: string, year: string, month: string): Promise<any> {
+    public async enqueue(id: string, year: string, month: string, type: 'NATIONAL_IDENTITY_CARD' | 'PASSPORT'): Promise<any> {
         return new Promise((resolve, reject) => {
-            this.queue.push({ id, year, month, resolve, reject });
+            this.queue.push({ id, year, month, type, resolve, reject });
             this.processQueue();
         });
     }
@@ -34,7 +35,7 @@ export class ScrapeQueue {
         const task = this.queue.shift()!;
 
         try {
-            const result = await scrape(task.id, task.year, task.month, this.browser);
+            const result = await scrape(task.id, task.year, task.month, task.type, this.browser);
             task.resolve(result);
         } catch (error) {
             task.reject(error);
