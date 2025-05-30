@@ -28,7 +28,7 @@ interface Response {
     status_code: number
     date_time: string
     result: 'PAYMENT_DATA_FOUND' | 'PAYMENT_DATA_NOT_FOUND' | 'USER_NOT_FOUND' | 'SCRAPE_FAILED',
-    remarks: 'SINGLE_RECORD' | 'MULTIPLE_RECORDS' | 'SITE_UNAVAILABLE'
+    remarks: 'SINGLE_RECORD' | 'MULTIPLE_RECORDS' | 'SITE_UNAVAILABLE' | 'NO_DATA_FOUND'
     request_data: {
         local_id_type: 'NATIONAL_IDENTITY_CARD' | 'PASSPORT'
         local_id_number: string
@@ -67,8 +67,8 @@ const handleRequest: RequestHandler = async (req, res) => {
             status_code: 200,
             date_time: new Date().toISOString(),
             time_taken: end - start,
-            result: result.data.length > 0 ? 'PAYMENT_DATA_FOUND' : 'PAYMENT_DATA_NOT_FOUND',
-            remarks: result.result === 'NO_DATA_FOUND' ? 'SITE_UNAVAILABLE' : result.data.length > 0 ? 'MULTIPLE_RECORDS' : 'SINGLE_RECORD',
+            result: result.result,
+            remarks: result.remarks,
             request_data: {
                 local_id_type: local_id_type,
                 local_id_number: local_id_number,

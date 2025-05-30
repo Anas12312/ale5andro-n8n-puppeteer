@@ -12,7 +12,8 @@ const BROWSER_WS_ENDPOINT = process.env.BROWSER_WS_ENDPOINT
 
 export default async function scrape(id: string, year: string, month: string, type: 'NATIONAL_IDENTITY_CARD' | 'PASSPORT', browser: Browser): Promise<{
     data: Data[],
-    result: string
+    result: 'PAYMENT_DATA_FOUND' | 'PAYMENT_DATA_NOT_FOUND' | 'USER_NOT_FOUND' | 'SCRAPE_FAILED',
+    remarks: 'SINGLE_RECORD' | 'MULTIPLE_RECORDS' | 'SITE_UNAVAILABLE' | 'NO_DATA_FOUND'
 }> {
 
     if (!browser) {
@@ -89,15 +90,30 @@ export default async function scrape(id: string, year: string, month: string, ty
 
             tableRows?.shift()
 
+            let result: 'PAYMENT_DATA_FOUND' | 'PAYMENT_DATA_NOT_FOUND' | 'USER_NOT_FOUND' | 'SCRAPE_FAILED'
+            let remarks: 'SINGLE_RECORD' | 'MULTIPLE_RECORDS' | 'SITE_UNAVAILABLE' | 'NO_DATA_FOUND'
+            if (tableRows?.length === 0) {
+                result = 'PAYMENT_DATA_NOT_FOUND'
+                remarks = 'NO_DATA_FOUND'
+            } else if (tableRows?.length === 1) {
+                result = 'PAYMENT_DATA_FOUND'
+                remarks = 'SINGLE_RECORD'
+            } else {
+                result = 'PAYMENT_DATA_FOUND'
+                remarks = 'MULTIPLE_RECORDS'
+            }
+
             return {
                 data: tableRows as Data[],
-                result: `Scraped table in ${end - start} milliseconds`
+                result,
+                remarks,
             }
         } catch (error) {
             console.error('No data found')
             return {
                 data: [],
-                result: 'NO_DATA_FOUND'
+                result: 'PAYMENT_DATA_NOT_FOUND',
+                remarks: 'NO_DATA_FOUND'
             }
         }
 
@@ -105,7 +121,8 @@ export default async function scrape(id: string, year: string, month: string, ty
         console.error('Error in scrape:', error)
         return {
             data: [],
-            result: 'SCRAPE_FAILED'
+            result: 'SCRAPE_FAILED',
+            remarks: 'SITE_UNAVAILABLE'
         }
     }
 }
