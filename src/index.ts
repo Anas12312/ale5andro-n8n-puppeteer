@@ -72,6 +72,26 @@ async function scrapeStart(local_id_number: string, year: string, month: string,
 const handleRequest: RequestHandler = async (req, res) => {
     const { local_id_number, year, month, local_id_type } = req.query
 
+    const headers = req.headers
+
+    const apiKey = headers['x-api-key'] as string
+    const apiSecret = headers['x-api-secret'] as string
+    const sourceSystem = headers['x-source-system'] as string
+    const origin = headers['x-origin'] as string
+    const timestamp = headers['x-timestamp'] as string
+    const signature = headers['x-signature'] as string
+
+    if (apiKey !== process.env.API_KEY
+        || apiSecret !== process.env.API_SECRET
+        || sourceSystem !== process.env.SOURCE_SYSTEM
+        || origin !== process.env.ORIGIN_IP
+        || timestamp !== process.env.TIMESTAMP
+        || signature !== process.env.SIGNATURE
+    ) {
+        res.status(401).json({ error: 'Unauthorized' })
+        return
+    }
+
     if (!local_id_number || !year || !month || !local_id_type) {
         res.status(400).json({ error: 'Missing required parameters' })
         return
