@@ -81,12 +81,13 @@ const handleRequest: RequestHandler = async (req, res) => {
     const timestamp = headers['x-timestamp'] as string
     const signature = headers['x-signature'] as string
 
-    if (apiKey !== process.env.API_KEY
-        || apiSecret !== process.env.API_SECRET
-        || sourceSystem !== process.env.SOURCE_SYSTEM
-        || origin !== process.env.ORIGIN_IP
-        || timestamp !== process.env.TIMESTAMP
-        || signature !== process.env.SIGNATURE
+    if (
+        apiKey !== process.env.API_KEY ||
+        apiSecret !== process.env.API_SECRET ||
+        sourceSystem !== process.env.SOURCE_SYSTEM ||
+        origin !== process.env.ORIGIN_IP ||
+        timestamp !== process.env.TIMESTAMP ||
+        signature !== process.env.SIGNATURE
     ) {
         res.status(401).json({ error: 'Unauthorized' })
         return
