@@ -13,7 +13,8 @@ const BROWSER_WS_ENDPOINT = process.env.BROWSER_WS_ENDPOINT
 export default async function scrape(id: string, year: string, month: string, type: 'NATIONAL_IDENTITY_CARD' | 'PASSPORT', browser: Browser): Promise<{
     data: Data[],
     result: 'PAYMENT_DATA_FOUND' | 'PAYMENT_DATA_NOT_FOUND' | 'USER_NOT_FOUND' | 'SCRAPE_FAILED',
-    remarks: 'SINGLE_RECORD' | 'MULTIPLE_RECORDS' | 'SITE_UNAVAILABLE' | 'NO_DATA_FOUND'
+    remarks: 'SINGLE_RECORD' | 'MULTIPLE_RECORDS' | 'SITE_UNAVAILABLE' | 'NO_DATA_FOUND',
+    error_message?: string
 }> {
 
     if (!browser) {
@@ -63,7 +64,6 @@ export default async function scrape(id: string, year: string, month: string, ty
 
         try {
             // Table
-
             await page.waitForNetworkIdle()
 
             const table = await page.waitForSelector('table#tablaPlanillaAsistida', { timeout: 10_000 })
@@ -74,10 +74,14 @@ export default async function scrape(id: string, year: string, month: string, ty
                 return Array.from(rows).map(row => {
                     const cells = row.querySelectorAll('td');
                     const arr = Array.from(cells).map(cell => cell.textContent);
+
+                    const numericAmount = Number((arr[2] as string)?.replaceAll('.', '').replace('$', '') || '0')
+
                     return {
                         form_id: arr[0],
                         form_type: arr[1],
                         amount_original: arr[2],
+                        amount: numericAmount * 100,
                         status: arr[3],
                         period: arr[4]?.trim(),
                     }
@@ -106,7 +110,7 @@ export default async function scrape(id: string, year: string, month: string, ty
             return {
                 data: tableRows as Data[],
                 result,
-                remarks,
+                remarks
             }
         } catch (error) {
             console.error('No data found')
@@ -122,7 +126,8 @@ export default async function scrape(id: string, year: string, month: string, ty
         return {
             data: [],
             result: 'SCRAPE_FAILED',
-            remarks: 'SITE_UNAVAILABLE'
+            remarks: 'SITE_UNAVAILABLE',
+            error_message: (error as Error).message // Protocl error: Connection closed.
         }
     }
 }
