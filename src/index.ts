@@ -101,6 +101,7 @@ const handleRequest: RequestHandler = async (req, res) => {
                 month: month
             },
             response_data: result.data,
+            error_message: result.error_message
         } as Response)
 
         return
