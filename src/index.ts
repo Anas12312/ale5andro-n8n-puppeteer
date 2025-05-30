@@ -42,6 +42,7 @@ interface Response {
         status: string
         period: string
     }
+    time_taken: number
 }
 
 // GET endpoint
@@ -59,10 +60,13 @@ const handleRequest: RequestHandler = async (req, res) => {
     }
 
     try {
+        const start = performance.now()
         const result = await scrapeQueue.enqueue(local_id_number as string, year as string, month as string, local_id_type as 'NATIONAL_IDENTITY_CARD' | 'PASSPORT')
+        const end = performance.now()
         res.status(200).json({
             status_code: 200,
             date_time: new Date().toISOString(),
+            time_taken: end - start,
             result: result.data.length > 0 ? 'PAYMENT_DATA_FOUND' : 'PAYMENT_DATA_NOT_FOUND',
             remarks: result.result === 'NO_DATA_FOUND' ? 'SITE_UNAVAILABLE' : result.data.length > 0 ? 'MULTIPLE_RECORDS' : 'SINGLE_RECORD',
             request_data: {
@@ -71,8 +75,8 @@ const handleRequest: RequestHandler = async (req, res) => {
                 year: year,
                 month: month
             },
-            response_data: result.data
-        })
+            response_data: result.data,
+        } as Response)
         return
     } catch (error) {
         console.error('Error in handleRequest:', error)
