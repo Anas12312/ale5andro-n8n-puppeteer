@@ -98,6 +98,9 @@ const handleRequest: RequestHandler = async (req, res) => {
         return
     }
 
+
+
+
     if (local_id_type !== 'NATIONAL_IDENTITY_CARD' && local_id_type !== 'PASSPORT') {
         res.status(400).json({ error: 'Invalid type' })
         return
