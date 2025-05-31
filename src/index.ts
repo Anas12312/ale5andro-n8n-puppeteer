@@ -77,7 +77,7 @@ const handleRequest: RequestHandler = async (req, res) => {
     const apiKey = headers['x-api-key'] as string
     const apiSecret = headers['x-api-secret'] as string
     const sourceSystem = headers['x-source-system'] as string
-    const origin = headers['x-origin'] as string
+    const origin = headers['x-origin-ip'] as string
     const timestamp = headers['x-timestamp'] as string
     const signature = headers['x-signature'] as string
 
