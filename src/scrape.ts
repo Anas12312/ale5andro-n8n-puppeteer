@@ -22,6 +22,7 @@ export default async function scrape(id: string, year: string, month: string, ty
     }
 
     try {
+        // Start scraping
         console.log('Starting scrape');
         const start = performance.now()
 
