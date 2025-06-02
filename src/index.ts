@@ -35,7 +35,8 @@ init()
 
 interface Response {
     scraped_page_status_code: number
-    date_time: string
+    request_date: string
+    response_date: string
     result: 'PAYMENT_DATA_FOUND' | 'PAYMENT_DATA_NOT_FOUND' | 'USER_NOT_FOUND' | 'SCRAPE_FAILED',
     remarks: 'SINGLE_RECORD' | 'MULTIPLE_RECORDS' | 'SITE_UNAVAILABLE' | 'NO_DATA_FOUND'
     request_data: {
@@ -71,6 +72,8 @@ async function scrapeStart(local_id_number: string, year: string, month: string,
 // GET endpoint
 const handleRequest: RequestHandler = async (req, res) => {
     const { local_id_number, year, month, local_id_type } = req.query
+
+    const requestDate = new Date().toISOString()
 
     const headers = req.headers
 
@@ -111,10 +114,13 @@ const handleRequest: RequestHandler = async (req, res) => {
         const result = await scrapeStart(local_id_number as string, year as string, month as string, local_id_type as 'NATIONAL_IDENTITY_CARD' | 'PASSPORT')
         const end = performance.now()
 
+        const responseDate = new Date().toISOString()
+
         res.status(200).json({
             url: 'https://servicio.nuevosoi.com.co/soi/consultarplanillas.do',
             scraped_page_status_code: (result.result === 'PAYMENT_DATA_FOUND' || result.result === 'PAYMENT_DATA_NOT_FOUND') ? 200 : 400,
-            date_time: new Date().toISOString(),
+            request_date: requestDate,
+            response_date: responseDate,
             time_taken: end - start,
             result: result.result,
             remarks: result.remarks,
@@ -125,7 +131,8 @@ const handleRequest: RequestHandler = async (req, res) => {
                 month: month
             },
             response_data: result.data,
-            error_message: result.error_message
+            error_message: result.error_message,
+            performance_results: result.performanceResults
         } as Response)
 
         return
