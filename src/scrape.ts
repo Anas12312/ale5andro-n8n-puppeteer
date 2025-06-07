@@ -10,12 +10,20 @@ interface Data {
 }
 const BROWSER_WS_ENDPOINT = process.env.BROWSER_WS_ENDPOINT
 
+interface PerformanceResult {
+    action: string
+    time: number
+}
+
 export default async function scrape(id: string, year: string, month: string, type: 'NATIONAL_IDENTITY_CARD' | 'PASSPORT', browser: Browser): Promise<{
     data: Data[],
     result: 'PAYMENT_DATA_FOUND' | 'PAYMENT_DATA_NOT_FOUND' | 'USER_NOT_FOUND' | 'SCRAPE_FAILED',
     remarks: 'SINGLE_RECORD' | 'MULTIPLE_RECORDS' | 'SITE_UNAVAILABLE' | 'NO_DATA_FOUND',
-    error_message?: string
+    error_message?: string,
+    performanceResults: PerformanceResult[]
 }> {
+
+    const performanceResults: PerformanceResult[] = []
 
     if (!browser) {
         throw new Error('Browser is still connecting...')
@@ -24,12 +32,30 @@ export default async function scrape(id: string, year: string, month: string, ty
     try {
         // Start scraping
         console.log('Starting scrape');
-        const start = performance.now()
+        const startConnect = performance.now()
 
         const page: Page = await browser.newPage();
+
+        const endConnect = performance.now()
+
+        performanceResults.push({
+            action: 'CONNECT_TO_REMOTE_BROWSER',
+            time: endConnect - startConnect
+        })
+
+        const startNavigate = performance.now()
+
         await page.goto("https://servicio.nuevosoi.com.co/soi/consultarplanillas.do", { waitUntil: "networkidle0" });
 
-        console.log('Navigated to page');
+        const endNavigate = performance.now()
+
+        performanceResults.push({
+            action: 'NAVIGATE_TO_PAGE',
+            time: endNavigate - startNavigate
+        })
+
+
+        const startInputFilling = performance.now()
 
         // Select Document Type
         const firstSelect = await page.waitForSelector('select#tipoDocumento');
@@ -48,7 +74,6 @@ export default async function scrape(id: string, year: string, month: string, ty
         const searchButton = await page.waitForSelector('a#planillasDisponiblesPago')
         await searchButton?.click();
 
-
         // Select Year
         const secondSelect = await page.waitForSelector('select#periodoLiqOtrosSubsAnno')
         await secondSelect?.select(year);
@@ -61,11 +86,28 @@ export default async function scrape(id: string, year: string, month: string, ty
         const searchButton2 = await page.waitForSelector('button#btnGuardar')
         await searchButton2?.click();
 
-        console.log('Clicked search button');
+        const endInputFilling = performance.now()
+
+        performanceResults.push({
+            action: 'INPUT_FILLING',
+            time: endInputFilling - startInputFilling
+        })
 
         try {
             // Table
+
+            const startSearchTable = performance.now()
+
             await page.waitForNetworkIdle()
+
+            const endSearchTable = performance.now()
+
+            performanceResults.push({
+                action: 'SEARCH_TABLE',
+                time: endSearchTable - startSearchTable
+            })
+
+            const startScrapeTable = performance.now()
 
             const table = await page.waitForSelector('table#tablaPlanillaAsistida', { timeout: 10_000 })
 
@@ -90,8 +132,13 @@ export default async function scrape(id: string, year: string, month: string, ty
             })
 
             console.log('Scraped table');
-            const end = performance.now()
-            console.log(`Scraped table in ${end - start} milliseconds`)
+            const endScrapeTable = performance.now()
+            console.log(`Scraped table in ${endScrapeTable - startScrapeTable} milliseconds`)
+
+            performanceResults.push({
+                action: 'SCRAPED_PAYMENT_DATA',
+                time: endScrapeTable - startScrapeTable
+            })
 
             tableRows?.shift()
 
@@ -111,14 +158,22 @@ export default async function scrape(id: string, year: string, month: string, ty
             return {
                 data: tableRows as Data[],
                 result,
-                remarks
+                remarks,
+                performanceResults: [
+                    ...performanceResults,
+                    {
+                        action: 'TOTAL',
+                        time: performanceResults.reduce((acc, curr) => acc + curr.time, 0)
+                    }
+                ]
             }
         } catch (error) {
             console.error('No data found')
             return {
                 data: [],
                 result: 'PAYMENT_DATA_NOT_FOUND',
-                remarks: 'NO_DATA_FOUND'
+                remarks: 'NO_DATA_FOUND',
+                performanceResults
             }
         }
 
@@ -128,7 +183,8 @@ export default async function scrape(id: string, year: string, month: string, ty
             data: [],
             result: 'SCRAPE_FAILED',
             remarks: 'SITE_UNAVAILABLE',
-            error_message: (error as Error).message // Protocl error: Connection closed.
+            error_message: (error as Error).message, // Protocl error: Connection closed.
+            performanceResults
         }
     }
 }
